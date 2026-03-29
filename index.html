@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mi Banco</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #f4f6f9;
+}
+
+/* LOGIN PRO */
+#login {
+  height: 100vh;
+  background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+              url('foto1.jpg');
+  background-size: cover;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-box {
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px);
+  padding: 30px;
+  border-radius: 15px;
+  color: white;
+  text-align: center;
+}
+
+.login-box input {
+  padding: 10px;
+  margin: 10px;
+  width: 200px;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 230px;
+  height: 100vh;
+  background: #1e2a38;
+  color: white;
+  position: fixed;
+}
+
+.sidebar h2 {
+  text-align: center;
+  padding: 20px;
+}
+
+.sidebar a {
+  display: block;
+  padding: 15px;
+  cursor: pointer;
+}
+
+.sidebar a:hover {
+  background: #2f3e50;
+}
+
+/* MAIN */
+.main {
+  margin-left: 230px;
+  padding: 20px;
+}
+
+/* CARDS */
+.card {
+  background: white;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 15px;
+  display: inline-block;
+  width: 220px;
+  box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+}
+
+/* LISTA */
+li {
+  background: white;
+  margin: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  list-style: none;
+}
+
+/* GALERÍA */
+.galeria img {
+  width: 200px;
+  margin: 10px;
+  border-radius: 15px;
+}
+
+/* SECCIONES */
+.seccion {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="login">
+  <div class="login-box">
+    <h1>Bienvenida</h1>
+    <input type="password" id="password" placeholder="Contraseña">
+    <br>
+    <button onclick="login()">Entrar</button>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+
+<div class="sidebar">
+  <h2>Mi Banco</h2>
+  <a onclick="mostrar('inicio')">Inicio</a>
+  <a onclick="mostrar('caja')">Movimientos</a>
+  <a onclick="mostrar('mercado')">Mercado</a>
+  <a onclick="mostrar('galeria')">Familia</a>
+  <a onclick="mostrar('ayuda')">Ayuda</a>
+</div>
+
+<div class="main">
+
+<div id="inicio" class="seccion">
+  <h1>Panel</h1>
+
+  <div class="card">
+    <h3>Ingresos</h3>
+    <p id="ingresos"></p>
+  </div>
+
+  <div class="card">
+    <h3>Gastos</h3>
+    <p id="gastos"></p>
+  </div>
+
+  <div class="card">
+    <h3>Disponible</h3>
+    <p id="disponible"></p>
+  </div>
+
+  <canvas id="grafico"></canvas>
+</div>
+
+<div id="caja" class="seccion">
+  <h1>Movimientos</h1>
+
+  <input type="number" id="monto">
+  <select id="tipo">
+    <option value="ingreso">Ingreso</option>
+    <option value="gasto">Gasto</option>
+  </select>
+
+  <button onclick="agregar()">Agregar</button>
+
+  <ul id="lista"></ul>
+</div>
+
+<div id="mercado" class="seccion">
+  <h1>Dólar en tiempo real</h1>
+  <h2 id="dolar"></h2>
+</div>
+
+<div id="galeria" class="seccion">
+  <h1>Familia ❤️</h1>
+  <div class="galeria">
+    <img src="foto1.jpg">
+    <img src="foto2.jpg">
+    <img src="foto3.jpg">
+  </div>
+</div>
+
+<div id="ayuda" class="seccion">
+  <h1>Consejo financiero</h1>
+  <p id="tip"></p>
+</div>
+
+</div>
+</div>
+
+<script>
+let ingresos = 15264226000;
+let gastos = 0;
+let movimientos = [];
+let chart;
+
+// LOGIN
+function login() {
+  if (document.getElementById("password").value === "muchasgraciasporestapagina") {
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    mostrar('inicio');
+    cargar();
+  }
+}
+
+// FORMATO DINERO
+function formato(num) {
+  return num.toLocaleString('es-CO');
+}
+
+// MOSTRAR SECCIÓN
+function mostrar(id) {
+  document.querySelectorAll(".seccion").forEach(s => s.style.display="none");
+  document.getElementById(id).style.display="block";
+}
+
+// AGREGAR
+function agregar() {
+  let monto = Number(montoInput.value);
+  let tipo = tipoSelect.value;
+  let fecha = new Date().toLocaleString();
+
+  if (!monto) return;
+
+  movimientos.push({monto, tipo, fecha});
+
+  guardar();
+  cargar();
+}
+
+// GUARDAR
+function guardar() {
+  localStorage.setItem("movimientos", JSON.stringify(movimientos));
+}
+
+// CARGAR (CORREGIDO)
+function cargar() {
+  movimientos = JSON.parse(localStorage.getItem("movimientos")) || [];
+
+  ingresos = 15264226000;
+  gastos = 0;
+
+  movimientos.forEach(m => {
+    if (m.tipo === "ingreso") ingresos += m.monto;
+    else gastos += m.monto;
+  });
+
+  ingresosEl.innerText = "$ " + formato(ingresos);
+  gastosEl.innerText = "$ " + formato(gastos);
+  disponibleEl.innerText = "$ " + formato(ingresos - gastos);
+
+  lista.innerHTML="";
+  movimientos.forEach((m,i)=>{
+    lista.innerHTML += `<li>${m.tipo} - $${formato(m.monto)} - ${m.fecha} 
+    <button onclick="eliminar(${i})">X</button></li>`;
+  });
+
+  grafico();
+  dolarReal();
+  consejo();
+}
+
+// ELIMINAR
+function eliminar(i){
+  movimientos.splice(i,1);
+  guardar();
+  cargar();
+}
+
+// GRÁFICO
+function grafico() {
+  if(chart) chart.destroy();
+
+  chart = new Chart(graficoEl, {
+    type:'doughnut',
+    data:{
+      labels:['Ingresos','Gastos'],
+      datasets:[{data:[ingresos,gastos]}]
+    }
+  });
+}
+
+// DÓLAR REAL
+async function dolarReal(){
+  try{
+    let res = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
+    let data = await res.json();
+    dolarEl.innerText = "$ " + formato(data.rates.COP);
+  }catch{
+    dolarEl.innerText = "Error cargando";
+  }
+}
+
+// CONSEJO
+function consejo(){
+  let tips = [
+    "No gastes más de lo que ganas",
+    "Ahorra al menos el 20%",
+    "Evita deudas innecesarias",
+    "Invierte para el futuro"
+  ];
+  tip.innerText = tips[Math.floor(Math.random()*tips.length)];
+}
+
+// ELEMENTOS
+const ingresosEl = document.getElementById("ingresos");
+const gastosEl = document.getElementById("gastos");
+const disponibleEl = document.getElementById("disponible");
+const lista = document.getElementById("lista");
+const montoInput = document.getElementById("monto");
+const tipoSelect = document.getElementById("tipo");
+const graficoEl = document.getElementById("grafico");
+const dolarEl = document.getElementById("dolar");
+const tip = document.getElementById("tip");
+</script>
+
+</body>
+</html>
